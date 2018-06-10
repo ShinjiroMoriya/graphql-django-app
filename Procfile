@@ -1,2 +1,2 @@
-release: python manage.py migrate && python manage.py createcachetable
+release: python manage.py migrate
 web: gunicorn graphqlapp.wsgi --log-file -
