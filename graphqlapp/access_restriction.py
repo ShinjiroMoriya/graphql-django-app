@@ -28,6 +28,8 @@ class AccessRestrictionMiddleware:
         if settings.IP_LIMIT is True:
             if self.is_trusted_ip(get_real_ip(request)) is True:
                 return
+        else:
+            return
 
         return JsonResponse({
             'exception': 'Forbidden'
