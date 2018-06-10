@@ -88,11 +88,11 @@ class Register(graphene.Mutation):
                     from_email='<app@tam-bourine.co.jp>',
                     to=[email],
                     body="""
-                    <h1>登録しました。</h1>
-                    <p><a href="https://localhost:8000/token/%s">
-                    認証してください。</a></p>
+                    <h3>登録しました。</h3>
+                    <p><a href="/token/{token}">
+                    認証してください。(/token/{token})</a></p>
                     <p>htmlメール</p>
-                    """ % str(serialized_token)
+                    """.format(token=str(serialized_token))
                 )
                 email_message.content_subtype = 'html'
                 email_result = email_message.send()
