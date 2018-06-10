@@ -1,9 +1,8 @@
-from django.http import HttpResponse
 from django.views import View
+from django.template.response import TemplateResponse
 
 
 class Home(View):
     @staticmethod
-    def get(_):
-        response = HttpResponse('Graphql Django App')
-        return response
+    def get(request):
+        return TemplateResponse(request, 'index.html')
