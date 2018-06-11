@@ -2,7 +2,7 @@ import graphene
 from graphene_django.debug import DjangoDebug
 from item.query import ItemQuery
 from account.mutations import (
-    Register, Login, RefreshToken, AccountByToken, ActivateAccount,
+    Register, Login, Logout,RefreshToken, AccountByToken, ActivateAccount,
     AccountUpdate, ResetPassword, ResetPasswordConfirm, DeleteAccount
 )
 
@@ -20,6 +20,9 @@ class Mutations(graphene.ObjectType):
     )
     login = Login.Field(
         description='ログイン'
+    )
+    logout = Logout.Field(
+        description='ログアウト'
     )
     refresh_token = RefreshToken.Field(
         description='リフレッシュトークン'

@@ -257,6 +257,51 @@ class Login(graphene.Mutation):
             )
 
 
+class Logout(graphene.Mutation):
+    """
+    Mutation to logout a account
+    """
+    class Arguments:
+        token = graphene.String(required=True)
+
+    success = graphene.Boolean()
+    errors = graphene.List(ErrorsType)
+
+    @staticmethod
+    def mutate(_, __, **kwargs):
+        token = kwargs.get('token')
+
+        try:
+            token = AccountToken.get_token({
+                'token': token,
+            })
+            if token is None:
+                return Logout(
+                    success=False,
+                    errors=[
+                        ErrorsType(
+                            field='token',
+                            message='Token Does not exist'
+                        )
+                    ]
+                )
+            token.delete()
+            return Logout(
+                success=True,
+            )
+
+        except Exception as e:
+            return Logout(
+                success=False,
+                errors=[
+                    ErrorsType(
+                        field='Exception',
+                        message=str(e)
+                    )
+                ]
+            )
+
+
 class ActivateAccount(graphene.Mutation):
     """
     Mutation to Activate Account

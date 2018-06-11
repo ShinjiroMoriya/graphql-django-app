@@ -43,6 +43,22 @@ class AccountTests(TestCase):
     }
     """
 
+    logout_query = """
+    mutation(
+        $token: String!,
+    ) {
+        logout (
+            token: $token
+        ) {
+            success
+            errors {
+                field
+                message
+            }
+        }
+    }
+    """
+
     register_query = """
     mutation(
         $name: String!,
@@ -215,6 +231,24 @@ class AccountTests(TestCase):
         assert result.data['login']['errors'] is None
         assert result.data['login']['token'] is not None
         assert result.data['login']['success'] is True
+
+    def test_logout_mutation_success(self):
+        login_result = schema.execute(
+            self.login_query,
+            variable_values={
+                'email': 'moriya+test@tam-bourine.co.jp',
+                'password': '02080208',
+            }
+        )
+        token = login_result.data['login']['token']
+        result = schema.execute(
+            self.logout_query,
+            variable_values={
+                'token': token,
+            }
+        )
+        assert result.data['logout']['errors'] is None
+        assert result.data['logout']['success'] is True
 
     def test_register_mutation_success(self):
         result = schema.execute(
