@@ -2,7 +2,7 @@ import graphene
 from datetime import datetime
 from graphene_django.debug import DjangoDebug
 from item.types import ItemType
-from account.models import AccountTokenModel
+from account.models import AccountToken
 from graphqlapp.fernet_cipher import fernet
 from item.models import Item
 
@@ -35,7 +35,7 @@ class ItemQuery(graphene.ObjectType):
         if token is None:
             return None
 
-        account_token = AccountTokenModel.get_token({'token': token})
+        account_token = AccountToken.get_token({'token': token})
 
         if account_token.expire < datetime.now():
             return None

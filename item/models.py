@@ -1,7 +1,7 @@
 import uuid
 from django.db import models
 from datetime import datetime
-from account.models import AccountModel
+from account.models import Account
 
 
 class Item(models.Model):
@@ -13,7 +13,7 @@ class Item(models.Model):
                           default=uuid.uuid4)
     name = models.CharField(max_length=100)
     price = models.CharField(max_length=100)
-    account = models.ForeignKey(AccountModel, on_delete=models.CASCADE)
+    account = models.ForeignKey(Account, on_delete=models.CASCADE)
     created_date = models.DateTimeField(default=datetime.now)
     updated_date = models.DateTimeField(default=datetime.now)
 

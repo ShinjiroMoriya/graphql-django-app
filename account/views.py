@@ -1,13 +1,13 @@
 from django.views import View
 from django.http import JsonResponse
-from account.models import AccountModel
+from account.models import Account
 
 
 class Token(View):
     @staticmethod
     def get(_, token):
         try:
-            status, reason = AccountModel.is_certification(token)
+            status, reason = Account.is_certification(token)
             if status is False:
                 raise Exception(reason)
 

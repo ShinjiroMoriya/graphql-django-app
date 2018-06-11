@@ -1,10 +1,10 @@
-from account.models import AccountModel
+from account.models import Account
 from graphene_django import DjangoObjectType
 
 
 class AccountType(DjangoObjectType):
     class Meta:
-        model = AccountModel
+        model = Account
         description = " Type definition for a single Account "
         filter_fields = {
             'id': ['exact'],

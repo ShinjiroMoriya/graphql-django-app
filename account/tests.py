@@ -1,7 +1,7 @@
 from django.test import TestCase
 from django.test.client import Client
 from graphqlapp.schema import schema
-from account.models import AccountModel
+from account.models import Account
 from django.contrib.auth.hashers import make_password
 
 
@@ -35,10 +35,10 @@ class AccountTests(TestCase):
             name: $name,
             email: $email,
             password: $password,
-            passwordConfirm: $passwordConfirm,                
+            passwordConfirm: $passwordConfirm
         ) {
             account {
-                token
+                name
             }
             sendToken
             success
@@ -88,9 +88,25 @@ class AccountTests(TestCase):
     }
     """
 
+    reset_password_query = """
+    mutation($email: String!) {
+        resetPassword(email: $email) {
+            success
+            sendToken
+            errors {
+                field
+                message
+            }
+            account {
+                passwordToken
+            }
+        }
+    }
+    """
+
     @classmethod
     def setUpTestData(cls):
-        account = AccountModel.objects.create(
+        account = Account.objects.create(
             name='test_taro',
             email='moriya+test@tam-bourine.co.jp',
             password=make_password('02080208'),
@@ -102,9 +118,8 @@ class AccountTests(TestCase):
         self.client = Client()
 
     def test_login_mutation_success(self):
-        query = self.login_query
         result = schema.execute(
-            query,
+            self.login_query,
             variable_values={
                 'email': 'moriya+test@tam-bourine.co.jp',
                 'password': '02080208',
@@ -130,9 +145,9 @@ class AccountTests(TestCase):
             self.register_query,
             variable_values={
                 'name': 'sample',
-                'email': 'moriya+test@tam-bourine.co.jp',
+                'email': 'moriya+12345@tam-bourine.co.jp',
                 'password': '02080208',
-                'password_confirm': '02080208',
+                'passwordConfirm': '02080208',
             }
         )
         """
@@ -153,7 +168,7 @@ class AccountTests(TestCase):
         assert result.data['register']['success'] is True
 
     def test_account_update_mutation_success(self):
-        before_data = AccountModel.get_account(
+        before_data = Account.get_account(
             {'email': 'moriya+test@tam-bourine.co.jp'}
         )
 
@@ -204,7 +219,6 @@ class AccountTests(TestCase):
 
         result = schema.execute(
             self.account_by_token_query,
-            context_value=request,
             variable_values={
                 'token': token,
             }
@@ -228,3 +242,27 @@ class AccountTests(TestCase):
         assert result.data['accountByToken']['errors'] is None
         assert result.data['accountByToken']['account'] is not None
         assert result.data['accountByToken']['success'] is True
+
+    def test_reset_password_mutation_success(self):
+        result = schema.execute(
+            self.reset_password_query,
+            variable_values={
+                'email': 'moriya+test@tam-bourine.co.jp',
+            }
+        )
+        """
+        result
+        {
+            'resetPassword': {
+                'account': {
+                    'passwordToken': 'ca395f4e-c603-4221-8fe2-c7135b7c5293',
+                }
+                'sendToken': 'eyJhbGciOiJIUzI1NiIsImlhdCI6MTUyODY5N...',
+                'success: True,
+                'errors': None
+            }
+        }
+        """
+        assert result.data['resetPassword']['errors'] is None
+        assert result.data['resetPassword']['sendToken'] is not None
+        assert result.data['resetPassword']['success'] is True

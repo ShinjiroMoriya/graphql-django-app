@@ -4,7 +4,7 @@ from django.db import transaction
 from datetime import datetime, timedelta
 from django.core.mail import EmailMessage
 from django.contrib.auth.hashers import make_password
-from account.models import AccountModel, AccountTokenModel
+from account.models import Account, AccountToken
 from account.types import AccountType
 from graphqlapp.types import ErrorsType
 from graphqlapp.fernet_cipher import fernet
@@ -34,7 +34,7 @@ class Register(graphene.Mutation):
         password = kwargs.get('password')
         password_confirm = kwargs.get('password_confirm')
 
-        send_count = AccountModel.objects.filter(
+        send_count = Account.objects.filter(
             email=email, is_active=False,
         ).count()
 
@@ -49,94 +49,93 @@ class Register(graphene.Mutation):
                 ]
             )
 
-        if password == password_confirm:
-
-            sid = transaction.savepoint()
-
-            try:
-                already_account = AccountModel.get_account({
-                    'email': email, 'is_active': True
-                })
-                if already_account is not None:
-                    return Register(
-                        success=False,
-                        errors=[
-                            ErrorsType(
-                                field='email',
-                                message='Email already registered.'
-                            )
-                        ]
+        if password != password_confirm:
+            return Register(
+                success=False,
+                errors=[
+                    ErrorsType(
+                        field='password',
+                        message='Passwords miss match.'
                     )
+                ]
+            )
 
-                uuid_token = uuid.uuid4()
+        sid = transaction.savepoint()
 
-                account = AccountModel.objects.create(
-                    name=name,
-                    email=email,
-                    password=make_password(password),
-                    token=uuid_token,
-                )
-                account.save()
-
-                serialized_token = serializer_time_dumps(
-                    str(uuid_token),
-                    expires=time_seconds(days=1)
-                )
-
-                email_message = EmailMessage(
-                    subject='Register Account',
-                    from_email='<app@tam-bourine.co.jp>',
-                    to=[email],
-                    body="""
-                    <h3>登録しました。</h3>
-                    <p><a href="/token/{token}">
-                    認証してください。(/token/{token})</a></p>
-                    <p>htmlメール</p>
-                    """.format(token=str(serialized_token))
-                )
-                email_message.content_subtype = 'html'
-                email_result = email_message.send()
-                if email_result != 0:
-                    return Register(
-                        success=True,
-                        account=account,
-                        send_token=serialized_token,
-                    )
-                else:
-                    transaction.savepoint_rollback(sid)
-                    return Register(
-                        success=False,
-                        errors=[
-                            ErrorsType(
-                                field='send email',
-                                message='Email could not sent'
-                            )
-                        ]
-                    )
-
-            except Exception as e:
-
-                transaction.savepoint_rollback(sid)
-
+        try:
+            already_account = Account.get_account({
+                'email': email, 'is_active': True
+            })
+            if already_account is not None:
                 return Register(
                     success=False,
                     errors=[
                         ErrorsType(
-                            field='exception',
-                            message=str(e)
+                            field='email',
+                            message='Email already registered.'
                         )
                     ]
                 )
 
-        return Register(
-            success=False,
-            errors=[
-                ErrorsType(
-                    field='password',
-                    message='Passwords miss match.'
+            active_token = uuid.uuid4()
+
+            account = Account.objects.create(
+                name=name,
+                email=email,
+                password=make_password(password),
+                active_token=active_token,
+            )
+            account.save()
+
+            serialized_token = serializer_time_dumps(
+                str(active_token),
+                expires=time_seconds(days=1)
+            )
+
+            email_message = EmailMessage(
+                subject='Register Account',
+                from_email='<app@tam-bourine.co.jp>',
+                to=[email],
+                body="""
+                <h3>登録しました。</h3>
+                <p><a href="/token/{token}">
+                認証してください。(/token/{token})</a></p>
+                <p>htmlメール</p>
+                """.format(token=str(serialized_token))
+            )
+            email_message.content_subtype = 'html'
+            email_result = email_message.send()
+            if email_result != 0:
+                return Register(
+                    success=True,
+                    account=account,
+                    send_token=serialized_token,
                 )
-            ]
-        )
+            else:
+                transaction.savepoint_rollback(sid)
+                return Register(
+                    success=False,
+                    errors=[
+                        ErrorsType(
+                            field='send email',
+                            message='Email could not sent'
+                        )
+                    ]
+                )
+
+        except Exception as e:
+
+            transaction.savepoint_rollback(sid)
+
+            return Register(
+                success=False,
+                errors=[
+                    ErrorsType(
+                        field='exception',
+                        message=str(e)
+                    )
+                ]
+            )
 
 
 class AccountUpdate(graphene.Mutation):
@@ -156,9 +155,9 @@ class AccountUpdate(graphene.Mutation):
     def mutate(_, __, **kwargs):
         try:
             token = kwargs.get('token')
-            account_token = AccountTokenModel.get_account({'token': token})
+            account_token = AccountToken.get_account({'token': token})
 
-            account = AccountModel.objects.get(
+            account = Account.objects.get(
                 id=account_token.account.id,
             )
             name = kwargs.get('name', account.name)
@@ -204,7 +203,7 @@ class Login(graphene.Mutation):
         password = kwargs.get('password')
 
         try:
-            status, account = AccountModel.is_authenticate({
+            status, account = Account.is_authenticate({
                 'email': email,
                 'password': password,
             })
@@ -219,7 +218,7 @@ class Login(graphene.Mutation):
                     ]
                 )
             if status is True:
-                account_token = AccountTokenModel.objects.create(
+                account_token = AccountToken.objects.create(
                     token=fernet.encrypt(str(account.id)),
                     expire=datetime.now() + timedelta(days=1),
                     account=account,
@@ -269,7 +268,7 @@ class RefreshToken(graphene.Mutation):
     def mutate(_, __, token):
         try:
             account_id = fernet.decrypt(token)
-            old_account_token = AccountTokenModel.get_accounts(
+            old_account_token = AccountToken.get_accounts(
                 {'token': token})
             if len(old_account_token) != 0:
                 old_account_token.delete()
@@ -284,7 +283,7 @@ class RefreshToken(graphene.Mutation):
                     ]
                 )
 
-            account = AccountModel.get_account({'id': account_id})
+            account = Account.get_account({'id': account_id})
 
             if account is None:
                 return RefreshToken(
@@ -298,7 +297,7 @@ class RefreshToken(graphene.Mutation):
                 )
 
             new_token = fernet.encrypt(account.email)
-            new_account_token = AccountTokenModel.objects.create(
+            new_account_token = AccountToken.objects.create(
                 token=new_token,
                 expire=datetime.now() + timedelta(days=1),
                 account=account,
@@ -323,7 +322,7 @@ class RefreshToken(graphene.Mutation):
             )
 
 
-class Account(graphene.Mutation):
+class AccountByToken(graphene.Mutation):
     """
     Mutation for Get Account Data
     """
@@ -337,9 +336,9 @@ class Account(graphene.Mutation):
     @staticmethod
     def mutate(_, __, token):
         try:
-            account = AccountTokenModel.get_account({'token': token})
+            account = AccountToken.get_account({'token': token})
             if account is None:
-                return Account(
+                return AccountByToken(
                     success=False,
                     errors=[
                         ErrorsType(
@@ -353,7 +352,7 @@ class Account(graphene.Mutation):
 
                 account.delete()
 
-                return Account(
+                return AccountByToken(
                     success=False,
                     errors=[
                         ErrorsType(
@@ -363,13 +362,13 @@ class Account(graphene.Mutation):
                     ]
                 )
 
-            return Account(
+            return AccountByToken(
                 success=True,
                 account=account.account
             )
 
         except Exception as e:
-            return Account(
+            return AccountByToken(
                 success=False,
                 errors=[
                     ErrorsType(message=str(e))
@@ -386,15 +385,73 @@ class ResetPassword(graphene.Mutation):
 
     success = graphene.Boolean()
     errors = graphene.List(ErrorsType)
+    send_token = graphene.String()
     account = graphene.Field(AccountType)
 
     @staticmethod
+    @transaction.atomic
     def mutate(_, __, email):
+
+        sid = transaction.savepoint()
+
         try:
-            account = AccountModel.get_account({'email': email})
-            return ResetPassword(success=True, account=account)
+            account = Account.get_account({'email': email})
+            if account is None:
+                return ResetPassword(
+                    success=False,
+                    errors=[
+                        ErrorsType(
+                            field='email',
+                            message='Account Does not exist'
+                        )
+                    ]
+                )
+            uuid_token = uuid.uuid4()
+            account.password_token = uuid_token
+            account.save()
+
+            serialized_token = serializer_time_dumps(
+                str(uuid_token),
+                expires=time_seconds(days=1)
+            )
+
+            email_message = EmailMessage(
+                subject='Register Account',
+                from_email='<app@tam-bourine.co.jp>',
+                to=[email],
+                body="""
+                <h3>変更手続きをしてください。</h3>
+                <p><a href="/password/{token}">
+                認証してください。(/password/{token})</a></p>
+                <p>htmlメール</p>
+                """.format(token=str(serialized_token))
+            )
+            email_message.content_subtype = 'html'
+            email_result = email_message.send()
+            if email_result != 0:
+                return ResetPassword(
+                    success=True,
+                    account=account,
+                    send_token=serialized_token
+                )
+            else:
+                transaction.savepoint_rollback(sid)
+                return ResetPassword(
+                    success=False,
+                    errors=[
+                        ErrorsType(
+                            field='send email',
+                            message='Email could not sent'
+                        )
+                    ]
+                )
+
         except Exception as e:
-            return ResetPassword(success=False, errors=['email', str(e)])
+            transaction.savepoint_rollback(sid)
+            return ResetPassword(
+                success=False,
+                errors=['email', str(e)]
+            )
 
 
 class ResetPasswordConfirm(graphene.Mutation):
