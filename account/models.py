@@ -37,7 +37,7 @@ class Account(models.Model):
             if load_token is None:
                 return False, 'Token Invalid'
 
-            account = cls.get_account({'token': load_token})
+            account = cls.get_account({'active_token': load_token})
 
             if account is None:
                 return False, 'Token Invalid'
@@ -46,6 +46,7 @@ class Account(models.Model):
                 return False, 'Already Certificated'
 
             account.is_active = True
+            account.active_token = None
             account.save()
 
             Account.objects.filter(

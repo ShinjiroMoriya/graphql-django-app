@@ -8,13 +8,32 @@ from django.contrib.auth.hashers import make_password
 class AccountTests(TestCase):
 
     login_query = """
-    mutation($email: String!, $password: String!) {
+    mutation(
+        $email: String!,
+        $password: String!
+    ) {
         login (
             email: $email,
             password: $password
         ) {
             expire
             token
+            success
+            errors {
+                field
+                message
+            }
+        }
+    }
+    """
+
+    activate_query = """
+    mutation(
+        $token: String!,
+    ) {
+        activateAccount (
+            token: $token
+        ) {
             success
             errors {
                 field
@@ -51,7 +70,10 @@ class AccountTests(TestCase):
     """
 
     update_query = """
-    mutation($token: String!, $name: String!) {
+    mutation(
+        $token: String!,
+        $name: String!
+    ) {
         accountUpdate (
             token: $token
             name: $name
@@ -71,8 +93,12 @@ class AccountTests(TestCase):
     """
 
     account_by_token_query = """
-    mutation($token: String!) {
-        accountByToken(token: $token) {
+    mutation(
+        $token: String!
+    ) {
+        accountByToken(
+            token: $token
+        ) {
             account {
                 name
                 email
@@ -89,8 +115,12 @@ class AccountTests(TestCase):
     """
 
     reset_password_query = """
-    mutation($email: String!) {
-        resetPassword(email: $email) {
+    mutation(
+        $email: String!
+    ) {
+        resetPassword(
+            email: $email
+        ) {
             success
             sendToken
             errors {
@@ -104,11 +134,57 @@ class AccountTests(TestCase):
     }
     """
 
+    reset_password_confirm_query = """
+    mutation(
+        $token: String!,
+        $password: String!,
+        $passwordConfirm: String!
+    ) {
+        resetPasswordConfirm(
+            token: $token,
+            password: $password,
+            passwordConfirm: $passwordConfirm
+        ) {
+            success
+            errors {
+                field
+                message
+            }
+        }
+    }
+    """
+
+    delete_query = """
+    mutation(
+        $email: String!,
+        $password: String!
+    ) {
+        deleteAccount(
+            email: $email,
+            password: $password        
+        ) {
+            success
+            errors {
+                field
+                message
+            }
+        }
+    }
+    """
+
     @classmethod
     def setUpTestData(cls):
         account = Account.objects.create(
             name='test_taro',
             email='moriya+test@tam-bourine.co.jp',
+            password=make_password('02080208'),
+            is_active=True,
+        )
+        account.save()
+
+        account = Account.objects.create(
+            name='test_jiro',
+            email='moriya+dev@tam-bourine.co.jp',
             password=make_password('02080208'),
             is_active=True,
         )
@@ -155,9 +231,9 @@ class AccountTests(TestCase):
         {
             'register': {
                 'account': {
-                    'token': 'fd9ae8ee-9284-4e15-8490-2f9734da3315', 
+                    'token': 'fd9ae8ee-9284-4e15-8490-2f9734da3315',
                 }
-                'sendToken': 'eyJhbGciOiJIUzI1NiIsImlhdCI6MTUyODQ0...', 
+                'sendToken': 'eyJhbGciOiJIUzI1NiIsImlhdCI6MTUyODQ0...',
                 'success': True,
                 'errors': None
             }
@@ -166,6 +242,29 @@ class AccountTests(TestCase):
         assert result.data['register']['errors'] is None
         assert result.data['register']['sendToken'] is not None
         assert result.data['register']['success'] is True
+
+    def test_activate_account_success(self):
+        register_result = schema.execute(
+            self.register_query,
+            variable_values={
+                'name': 'sample',
+                'email': 'moriya+12345@tam-bourine.co.jp',
+                'password': '02080208',
+                'passwordConfirm': '02080208',
+            }
+        )
+
+        token = register_result.data['register']['sendToken']
+
+        result = schema.execute(
+            self.activate_query,
+            variable_values={
+                'token': token,
+            }
+        )
+
+        assert result.data['activateAccount']['errors'] is None
+        assert result.data['activateAccount']['success'] is True
 
     def test_account_update_mutation_success(self):
         before_data = Account.get_account(
@@ -266,3 +365,44 @@ class AccountTests(TestCase):
         assert result.data['resetPassword']['errors'] is None
         assert result.data['resetPassword']['sendToken'] is not None
         assert result.data['resetPassword']['success'] is True
+
+    def test_reset_password_confirm_mutation_success(self):
+        send_result = schema.execute(
+            self.reset_password_query,
+            variable_values={
+                'email': 'moriya+test@tam-bourine.co.jp',
+            }
+        )
+        token = send_result.data['resetPassword']['sendToken']
+        password_result = schema.execute(
+            self.reset_password_confirm_query,
+            variable_values={
+                'token': token,
+                'password': "qwerty1234",
+                'passwordConfirm': "qwerty1234"
+            }
+        )
+        assert password_result.data['resetPasswordConfirm']['errors'] is None
+        assert password_result.data['resetPasswordConfirm']['success'] is True
+
+        login_result = schema.execute(
+            self.login_query,
+            variable_values={
+                'email': 'moriya+test@tam-bourine.co.jp',
+                'password': 'qwerty1234',
+            }
+        )
+
+        assert login_result.data['login']['errors'] is None
+        assert login_result.data['login']['success'] is True
+
+    def test_delete_mutation_success(self):
+        result = schema.execute(
+            self.delete_query,
+            variable_values={
+                'email': 'moriya+dev@tam-bourine.co.jp',
+                'password': '02080208',
+            }
+        )
+        assert result.data['deleteAccount']['errors'] is None
+        assert result.data['deleteAccount']['success'] is True

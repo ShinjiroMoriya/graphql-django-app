@@ -12,11 +12,21 @@ class ItemQuery(graphene.ObjectType):
     item = graphene.Field(
         ItemType,
         description='get Item',
+        token=graphene.String(default_value=None),
         item_id=graphene.String(default_value=None)
     )
 
     @staticmethod
     def resolve_item(_, __, **kwargs):
+        token = kwargs.get('token')
+        if token is None:
+            return None
+
+        account_token = AccountToken.get_token({'token': token})
+
+        if account_token.expire < datetime.now():
+            return None
+
         item_id = kwargs.get('item_id')
         if item_id is not None:
             return Item.get_items({'id': item_id}).first()

@@ -8,7 +8,9 @@ from account.models import Account, AccountToken
 from account.types import AccountType
 from graphqlapp.types import ErrorsType
 from graphqlapp.fernet_cipher import fernet
-from graphqlapp.serializer import serializer_time_dumps, time_seconds
+from graphqlapp.serializer import (
+    serializer_time_dumps, serializer_time_loads, time_seconds,
+)
 
 
 class Register(graphene.Mutation):
@@ -26,9 +28,8 @@ class Register(graphene.Mutation):
     errors = graphene.List(ErrorsType)
     account = graphene.Field(AccountType)
 
-    @staticmethod
     @transaction.atomic
-    def mutate(_, __, **kwargs):
+    def mutate(self, info, **kwargs):
         name = kwargs.get('name')
         email = kwargs.get('email')
         password = kwargs.get('password')
@@ -55,7 +56,7 @@ class Register(graphene.Mutation):
                 errors=[
                     ErrorsType(
                         field='password',
-                        message='Passwords miss match.'
+                        message='Passwords miss match'
                     )
                 ]
             )
@@ -91,6 +92,10 @@ class Register(graphene.Mutation):
                 str(active_token),
                 expires=time_seconds(days=1)
             )
+            try:
+                domain = info.context.get_host()
+            except:
+                domain = ''
 
             email_message = EmailMessage(
                 subject='Register Account',
@@ -98,10 +103,10 @@ class Register(graphene.Mutation):
                 to=[email],
                 body="""
                 <h3>登録しました。</h3>
-                <p><a href="/token/{token}">
-                認証してください。(/token/{token})</a></p>
+                <p><a href="https://{domain}/token/{token}">
+                認証してください。(https://{domain}/token/{token})</a></p>
                 <p>htmlメール</p>
-                """.format(token=str(serialized_token))
+                """.format(domain=domain, token=str(serialized_token))
             )
             email_message.content_subtype = 'html'
             email_result = email_message.send()
@@ -252,6 +257,39 @@ class Login(graphene.Mutation):
             )
 
 
+class ActivateAccount(graphene.Mutation):
+    """
+    Mutation to Activate Account
+    """
+    class Arguments:
+        token = graphene.String(required=True)
+
+    success = graphene.Boolean()
+    errors = graphene.List(ErrorsType)
+
+    @staticmethod
+    def mutate(_, __, **kwargs):
+        token = kwargs.get('token')
+        try:
+            status, reason = Account.is_certification(token)
+            if status is False:
+                raise Exception(reason)
+
+            return ActivateAccount(
+                success=True,
+            )
+
+        except Exception as e:
+            return ActivateAccount(
+                success=False,
+                errors=[
+                    ErrorsType(
+                        field='exception',
+                        message=str(e),
+                    )
+                ])
+
+
 class RefreshToken(graphene.Mutation):
     """
     Mutation to re_authenticate a Account
@@ -390,7 +428,7 @@ class ResetPassword(graphene.Mutation):
 
     @staticmethod
     @transaction.atomic
-    def mutate(_, __, email):
+    def mutate(_, info, email):
 
         sid = transaction.savepoint()
 
@@ -406,6 +444,7 @@ class ResetPassword(graphene.Mutation):
                         )
                     ]
                 )
+
             uuid_token = uuid.uuid4()
             account.password_token = uuid_token
             account.save()
@@ -415,16 +454,21 @@ class ResetPassword(graphene.Mutation):
                 expires=time_seconds(days=1)
             )
 
+            try:
+                domain = info.context.get_host()
+            except:
+                domain = ''
+
             email_message = EmailMessage(
                 subject='Register Account',
                 from_email='<app@tam-bourine.co.jp>',
                 to=[email],
                 body="""
                 <h3>変更手続きをしてください。</h3>
-                <p><a href="/password/{token}">
-                認証してください。(/password/{token})</a></p>
+                <p><a href="https://{domain}/password/{token}">
+                認証してください。(https://{domain}/password/{token})</a></p>
                 <p>htmlメール</p>
-                """.format(token=str(serialized_token))
+                """.format(domain=domain ,token=str(serialized_token))
             )
             email_message.content_subtype = 'html'
             email_result = email_message.send()
@@ -458,20 +502,75 @@ class ResetPasswordConfirm(graphene.Mutation):
     """
     Mutation for requesting a password reset email
     """
-
     class Arguments:
-        uid = graphene.String(required=True)
         token = graphene.String(required=True)
-        email = graphene.String(required=True)
-        new_password = graphene.String(required=True)
-        re_new_password = graphene.String(required=True)
+        password = graphene.String(required=True)
+        password_confirm = graphene.String(required=True)
 
     success = graphene.Boolean()
     errors = graphene.List(ErrorsType)
+    account = graphene.Field(AccountType)
 
     @staticmethod
     def mutate(_, __, **kwargs):
-        return ResetPasswordConfirm(success=True, errors=None)
+        try:
+            token = kwargs.get('token')
+            password = kwargs.get('password')
+            password_confirm = kwargs.get('password_confirm')
+
+            load_token = serializer_time_loads(token)
+            if load_token is None:
+                return ResetPasswordConfirm(
+                    success=False,
+                    errors=[
+                        ErrorsType(
+                            field='token',
+                            message='Token Invalid'
+                        )
+                    ]
+                )
+
+            if password != password_confirm:
+                return ResetPasswordConfirm(
+                    success=False,
+                    errors=[
+                        ErrorsType(
+                            field='password',
+                            message='Passwords miss match'
+                        )
+                    ]
+                )
+
+            account = Account.get_account({'password_token': load_token})
+            if account is None:
+                return ResetPasswordConfirm(
+                    success=False,
+                    errors=[
+                        ErrorsType(
+                            field='account',
+                            message='Account Does not exist'
+                        )
+                    ]
+                )
+            account.password_token = None
+            account.password = make_password(password)
+            account.save()
+
+            return ResetPasswordConfirm(
+                success=True,
+                account=account
+            )
+
+        except Exception as e:
+            return ResetPasswordConfirm(
+                success=False,
+                errors=[
+                    ErrorsType(
+                        field='exception',
+                        message=str(e)
+                    )
+                ]
+            )
 
 
 class DeleteAccount(graphene.Mutation):
@@ -483,18 +582,56 @@ class DeleteAccount(graphene.Mutation):
         password = graphene.String(required=True)
 
     success = graphene.Boolean()
-    errors = graphene.List(graphene.String)
+    errors = graphene.List(ErrorsType)
 
     @staticmethod
-    def mutate(_, info, email, password):
-        is_authenticated = info.context.user.is_authenticated
-        if not is_authenticated:
-            errors = ['unauthenticated']
-        elif is_authenticated and not email == info.context.user.email:
-            errors = ['forbidden']
-        elif not info.context.user.check_password(password):
-            errors = ['wrong password']
-        else:
-            info.context.user.delete()
-            return DeleteAccount(success=True)
-        return DeleteAccount(success=False, errors=errors)
+    def mutate(_, __, **kwargs):
+        try:
+            email = kwargs.get('email')
+            password = kwargs.get('password')
+            status, account = Account.is_authenticate({
+                'email': email,
+                'password': password,
+            })
+            if account is None:
+                return DeleteAccount(
+                    success=status,
+                    errors=[
+                        ErrorsType(
+                            field='account',
+                            message='Account Does not exist'
+                        )
+                    ]
+                )
+
+            if status is True:
+                account_token = AccountToken.get_accounts({'account': account})
+                account_token.delete()
+
+                account.is_active = False
+                account.save()
+
+                return DeleteAccount(
+                    success=status,
+                )
+            else:
+                return DeleteAccount(
+                    success=status,
+                    errors=[
+                        ErrorsType(
+                            field='password',
+                            message='Password Invalid'
+                        )
+                    ]
+                )
+
+        except Exception as e:
+            return DeleteAccount(
+                success=False,
+                errors=[
+                    ErrorsType(
+                        field='Exception',
+                        message=str(e)
+                    )
+                ]
+            )
