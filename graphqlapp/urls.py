@@ -9,6 +9,5 @@ from account.views import Token
 urlpatterns = [
     path('', Home.as_view()),
     path('graphql', GraphQLView.as_view(graphiql=True, schema=schema)),
-    path('token/<token>', Token.as_view()),
     path('favicon.ico', TemplateView.as_view(template_name='favicon.ico')),
 ]
