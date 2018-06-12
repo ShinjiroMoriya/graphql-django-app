@@ -6,7 +6,7 @@ var DJANGO_PORT = process.env.DJANGO_PORT || 8000;
 
 var DEV = process.env.DJANGO_PORT === undefined;
 
-if DEV === true:
+if (DEV === true):
     var fs = require('fs');
     var https = require('https');
     var options = {
