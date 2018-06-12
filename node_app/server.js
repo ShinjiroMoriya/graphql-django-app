@@ -27,7 +27,7 @@ app.use(proxy("/graphql", {
 }))
 
 app.use('/build', express.static('build'));
-
+app.get('/favicon.ico', (req, res) => res.status(204))
 app.get('/', (req, res) => {
     res.status(200);
     res.setHeader('Content-Type', 'text/html');
