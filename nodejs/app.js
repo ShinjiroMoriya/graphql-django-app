@@ -7,7 +7,7 @@ var proxy = httpProxy.createProxyServer({});
 
 http.createServer(function(req, res) {
     // For all URLs beginning with /channel proxy to the Node.JS app, for all other URLs proxy to the Django app running on DJANGO_PORT
-    if(req.url.indexOf('/channel') === 0) {
+    if(req.url.indexOf('/render') === 0) {
         // Depending on your application structure you can proxy to a node application running on another port, or serve content directly here
         proxy.web(req, res, { target: 'http://localhost:' + NODE_PORT });
 
