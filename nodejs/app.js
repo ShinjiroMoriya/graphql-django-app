@@ -6,14 +6,14 @@ var DJANGO_PORT = process.env.DJANGO_PORT || 8000;
 
 var DEV = process.env.DJANGO_PORT === undefined;
 
-if (DEV === true):
+if (DEV === true) {
     var fs = require('fs');
     var https = require('https');
     var options = {
         key:  fs.readFileSync('../localhost.key'),
         cert: fs.readFileSync('../localhost.crt')
     };
-
+}
 var app = express();
 
 app.get('/', function (req, res) {
