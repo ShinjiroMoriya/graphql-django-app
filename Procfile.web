@@ -1,2 +1,2 @@
-django: gunicorn graphqlapp.wsgi --bind 127.0.0.1:$DJANGO_PORT
+django: gunicorn graphqlapp.wsgi --log-file -
 node: node nodejs/app.js
