@@ -1,58 +1,51 @@
-var express = require('express');
-var proxy = require('http-proxy-middleware');
+import fs from 'fs';
+import express from 'express';
+import React from 'react';
+import ReactDOMServer from 'react-dom/server';
+import NodeJsx from 'node-jsx';
+import proxy from 'http-proxy-middleware';
+NodeJsx.install({harmony: true});
+import Html from './src/Html';
+import App from './src/App';
+import asset from './build/asset-manifest.json';
+import {readFileSync} from 'fs';
+import https  from 'https';
+import http from 'http';
 
-//var NODE_PORT = 4711;
-var DJANGO_PORT = process.env.DJANGO_PORT || 8000;
+const PORT = process.env.PORT || 3000;
 
-var DEV = process.env.DJANGO_PORT === undefined;
+const initialData = {
+    logo: `/build/${asset['static/media/logo.svg']}`
+};
+const DJANGO_PORT = process.env.DJANGO_PORT || 8000;
+const DEV = process.env.DJANGO_PORT === undefined;
 
-var app = express();
-
-app.get('/', function (req, res) {
-    res.send('Hello World!');
-});
+let app = express();
 
 app.use(proxy("/graphql", {
     "target": 'http://localhost:'+ DJANGO_PORT,
 }))
 
+app.use('/build', express.static('build'));
+
+app.get('/', (req, res) => {
+    res.status(200);
+    res.setHeader('Content-Type', 'text/html');
+    res.end(
+        ReactDOMServer.renderToStaticMarkup(
+            <Html asset={asset} initialData={JSON.stringify(initialData)}>
+                <App {...initialData} />
+            </Html>
+        )
+    );
+});
+
 if (DEV === true) {
-    var fs = require('fs');
-    var https = require('https');
-    var options = {
-        key:  fs.readFileSync('../localhost.key'),
-        cert: fs.readFileSync('../localhost.crt')
+    const options = {
+        key:  readFileSync('../localhost.key'),
+        cert: readFileSync('../localhost.crt')
     };
-    var app = https.createServer(options, app);
+    https.createServer(options, app).listen(PORT);
+} else {
+    http.createServer(options, app).listen(PORT);
 }
-
-app.listen(process.env.PORT);
-
-//var http = require('http'),
-//    httpProxy = require('http-proxy');
-//
-//var NODE_PORT = 4711;
-//
-//var proxy = httpProxy.createProxyServer({});
-//
-//http.createServer(function(req, res) {
-//    console.log('foo')
-//    if(req.url.indexOf('/render') === 0) {
-//        console.log('hoge')
-//        proxy.web(req, res, { target: 'http://localhost:' + NODE_PORT });
-//
-//        // Proxy WebSocket requests if needed
-//        proxy.on('upgrade', function(req, socket, head) {
-//            proxy.ws(req, socket, head, { target: 'ws://localhost:' + NODE_PORT });
-//        });
-//    } else {
-//        proxy.web(req, res, { target: 'http://localhost:' + process.env.DJANGO_PORT });
-//    }
-//}).listen(process.env.PORT);
-//
-//// Example node application running on another port
-//http.createServer(function(req, res) {
-//    res.writeHead(200, { 'Content-Type': 'text/plain' });
-//    res.write('Request successfully proxied to Node.JS app');
-//    res.end();
-//}).listen(NODE_PORT);
