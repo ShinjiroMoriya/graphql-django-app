@@ -14,6 +14,7 @@ if (DEV === true) {
         cert: fs.readFileSync('../localhost.crt')
     };
 }
+
 var app = express();
 
 app.get('/', function (req, res) {
@@ -24,9 +25,9 @@ app.use(proxy("/graphql", {
     "target": 'https://localhost:'+ DJANGO_PORT,
 }))
 
-var server = https.createServer(options, app);
+var app = https.createServer(options, app);
 
-server.listen(NODE_PORT);
+app.listen(NODE_PORT);
 
 //var http = require('http'),
 //    httpProxy = require('http-proxy');
