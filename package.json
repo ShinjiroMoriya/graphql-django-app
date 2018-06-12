@@ -17,6 +17,9 @@
   },
   "homepage": "https://github.com/ShinjiroMoriya/graphql-django-app#readme",
   "dependencies": {
-    "http-proxy": "^1.17.0"
+    "express": "^4.16.3",
+    "express-http-proxy": "^1.2.0",
+    "http-proxy": "^1.17.0",
+    "http-proxy-middleware": "^0.18.0"
   }
 }
