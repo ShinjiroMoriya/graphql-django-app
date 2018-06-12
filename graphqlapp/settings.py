@@ -11,6 +11,8 @@ ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
 
 TESTING = len(sys.argv) > 1 and sys.argv[1] == 'test'
 
+CSP_DEFAULT_SRC = os.getenv('CSP_DEFAULT_SRC', "'self'").split(',')
+
 INSTALLED_APPS = [
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -31,7 +33,9 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'csp.middleware.CSPMiddleware',
 ]
+
 
 HOST_WHITELIST = os.environ.get(
     'HOST_WHITELIST', '').split(',')
