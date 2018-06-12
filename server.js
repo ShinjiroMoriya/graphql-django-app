@@ -39,12 +39,12 @@ app.get('/', (req, res) => {
     );
 });
 
-if (DEV === true) {
+if (DEV !== true) {
     const options = {
         key:  readFileSync('../localhost.key'),
         cert: readFileSync('../localhost.crt')
     };
     https.createServer(options, app).listen(PORT);
 } else {
-    http.createServer(options, app).listen(PORT);
+    http.createServer(app).listen(PORT);
 }
