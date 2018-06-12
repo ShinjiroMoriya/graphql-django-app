@@ -6,15 +6,6 @@ var DJANGO_PORT = process.env.DJANGO_PORT || 8000;
 
 var DEV = process.env.DJANGO_PORT === undefined;
 
-if (DEV === true) {
-    var fs = require('fs');
-    var https = require('https');
-    var options = {
-        key:  fs.readFileSync('../localhost.key'),
-        cert: fs.readFileSync('../localhost.crt')
-    };
-}
-
 var app = express();
 
 app.get('/', function (req, res) {
@@ -25,7 +16,15 @@ app.use(proxy("/graphql", {
     "target": 'https://localhost:'+ DJANGO_PORT,
 }))
 
-var app = https.createServer(options, app);
+if (DEV === true) {
+    var fs = require('fs');
+    var https = require('https');
+    var options = {
+        key:  fs.readFileSync('../localhost.key'),
+        cert: fs.readFileSync('../localhost.crt')
+    };
+    var app = https.createServer(options, app);
+}
 
 app.listen(NODE_PORT);
 

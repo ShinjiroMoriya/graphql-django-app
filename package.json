@@ -21,6 +21,8 @@
     "express-http-proxy": "^1.2.0",
     "http-proxy": "^1.17.0",
     "http-proxy-middleware": "^0.18.0",
-    "https": "^1.0.0"
+    "https": "^1.0.0",
+    "react": "^16.4.0",
+    "react-dom": "^16.4.0"
   }
 }
