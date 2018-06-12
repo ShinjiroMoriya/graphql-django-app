@@ -1,7 +1,7 @@
 var express = require('express');
 var proxy = require('http-proxy-middleware');
 
-var NODE_PORT = 4711;
+//var NODE_PORT = 4711;
 var DJANGO_PORT = process.env.DJANGO_PORT || 8000;
 
 var DEV = process.env.DJANGO_PORT === undefined;
@@ -26,7 +26,7 @@ if (DEV === true) {
     var app = https.createServer(options, app);
 }
 
-app.listen(NODE_PORT);
+app.listen(process.env.PORT);
 
 //var http = require('http'),
 //    httpProxy = require('http-proxy');
