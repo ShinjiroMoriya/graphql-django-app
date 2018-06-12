@@ -39,7 +39,7 @@ app.get('/', (req, res) => {
     );
 });
 
-if (DEV !== true) {
+if (DEV === true) {
     const options = {
         key:  readFileSync('../localhost.key'),
         cert: readFileSync('../localhost.crt')
