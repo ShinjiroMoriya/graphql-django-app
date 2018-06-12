@@ -1,20 +1,32 @@
-//app.use('/', proxy('http://localhost:' + DJANGO_PORT));
-//
-//app.listen(NODE_PORT);
-
 var express = require('express');
 var proxy = require('http-proxy-middleware');
 
 var NODE_PORT = 4711;
+var DJANGO_PORT = process.env.DJANGO_PORT || 8000;
+
+var DEV = process.env.DJANGO_PORT === undefined;
+
+if DEV === true:
+    var fs = require('fs');
+    var https = require('https');
+    var options = {
+        key:  fs.readFileSync('../localhost.key'),
+        cert: fs.readFileSync('../localhost.crt')
+    };
 
 var app = express();
 
 app.get('/', function (req, res) {
-  res.send('Hello World!');
+    res.send('Hello World!');
 });
 
-app.use('/graphql', proxy('http://127.0.0.1:'+ process.env.DJANGO_PORT));
-app.listen(NODE_PORT);
+app.use(proxy("/graphql", {
+    "target": 'https://localhost:'+ DJANGO_PORT,
+}))
+
+var server = https.createServer(options, app);
+
+server.listen(NODE_PORT);
 
 //var http = require('http'),
 //    httpProxy = require('http-proxy');
