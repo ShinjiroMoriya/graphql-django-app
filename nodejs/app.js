@@ -13,7 +13,7 @@ app.get('/', function (req, res) {
 });
 
 app.use(proxy("/graphql", {
-    "target": 'https://localhost:'+ DJANGO_PORT,
+    "target": 'http://localhost:'+ DJANGO_PORT,
 }))
 
 if (DEV === true) {
