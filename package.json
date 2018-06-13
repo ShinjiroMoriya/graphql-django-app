@@ -42,6 +42,9 @@
     "react": "^16.4.0",
     "react-dev-utils": "^5.0.1",
     "react-dom": "^16.4.0",
+    "react-redux": "^5.0.7",
+    "react-router-config": "^1.0.0-beta.4",
+    "react-router-dom": "^4.3.1",
     "resolve": "1.6.0",
     "style-loader": "0.19.0",
     "sw-precache-webpack-plugin": "0.11.4",
@@ -55,7 +58,7 @@
     "start": "node scripts/start.js",
     "build": "node scripts/build.js",
     "test": "node scripts/test.js --env=jsdom",
-    "server": "IS_SERVER=true node -r babel-register ./server.js"
+    "server": "node -r babel-register ./server.js"
   },
   "jest": {
     "collectCoverageFrom": [

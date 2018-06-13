@@ -1,26 +1,10 @@
-import React, { Component } from 'react';
-if (process.env.IS_SERVER !== 'true') {
-  require('./App.css');
-  require('./logo.svg');
-}
+import React, { Component } from "react";
+import { BrowserRouter } from "react-router-dom";
+import { renderRoutes } from "react-router-config";
+import Routes from "./Routes";
 
-class App extends Component {
-  constructor(props) {
-    super(props);
-  }
+export default class App extends Component {
   render() {
-    return (
-      <div className="App">
-        <header className="App-header">
-          <img src={this.props.logo} className="App-logo" alt="logo" />
-          <h1 className="App-title">Welcome to React</h1>
-        </header>
-        <p className="App-intro">
-          To get started, edit <code>src/App.js</code> and save to reload.
-        </p>
-      </div>
-    );
+    return <BrowserRouter>{renderRoutes(Routes)}</BrowserRouter>;
   }
 }
-
-export default App;
