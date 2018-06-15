@@ -201,6 +201,7 @@ class Login(graphene.Mutation):
     errors = graphene.List(ErrorsType)
     token = graphene.String()
     expire = graphene.DateTime()
+    account = graphene.Field(AccountType)
 
     @staticmethod
     def mutate(_, __, **kwargs):
@@ -228,9 +229,9 @@ class Login(graphene.Mutation):
                     expire=datetime.now() + timedelta(days=1),
                     account=account,
                 )
-                account_token.save()
                 return Login(
                     success=status,
+                    account=account,
                     token=account_token.token,
                     expire=account_token.expire,
                 )
@@ -415,6 +416,7 @@ class AccountByToken(graphene.Mutation):
     success = graphene.Boolean()
     errors = graphene.List(ErrorsType)
     account = graphene.Field(AccountType)
+    token = graphene.String()
 
     @staticmethod
     def mutate(_, __, token):
@@ -447,6 +449,7 @@ class AccountByToken(graphene.Mutation):
 
             return AccountByToken(
                 success=True,
+                token=token,
                 account=account.account
             )
 

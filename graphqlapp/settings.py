@@ -15,6 +15,7 @@ INSTALLED_APPS = [
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'graphene_django',
+    'corsheaders',
     'account',
     'item',
 ]
@@ -28,11 +29,13 @@ MIDDLEWARE = [
     'graphqlapp.access_restriction.AccessRestrictionMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+CORS_ORIGIN_ALLOW_ALL = True
 
 HOST_WHITELIST = os.environ.get(
     'HOST_WHITELIST', '').split(',')
@@ -70,7 +73,6 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'APP_DIRS': True,
-        'DIRS': ['templates']
     },
 ]
 

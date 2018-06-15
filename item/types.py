@@ -11,7 +11,9 @@ class ItemType(DjangoObjectType):
             'id': ['exact'],
             'name': ['exact', 'icontains', 'iexact'],
             'price': ['exact', 'icontains', 'iexact'],
+            'image': ['exact'],
             'account': ['exact'],
+            'recommended': ['exact'],
             'updated_date': ['exact', 'icontains', 'iexact'],
             'created_date': ['exact', 'icontains', 'iexact'],
         }

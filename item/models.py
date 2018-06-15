@@ -13,7 +13,9 @@ class Item(models.Model):
                           default=uuid.uuid4)
     name = models.CharField(max_length=100)
     price = models.CharField(max_length=100)
+    image = models.CharField(max_length=100, null=True, blank=True)
     account = models.ForeignKey(Account, on_delete=models.CASCADE)
+    recommended = models.BooleanField(default=False)
     created_date = models.DateTimeField(default=datetime.now)
     updated_date = models.DateTimeField(default=datetime.now)
 
